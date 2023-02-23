@@ -145,10 +145,7 @@ getChangeStreamCursors = function(filterConditions = {}) {
 //
 
 
-	print("Getting currently opened change stream cursors ...");
-	print("Note: change stream cursor may not be returned if it was not opened or iterated recently \
-		consider running immediately after running a method like tryNext(). \
-		See https://www.mongodb.com/docs/manual/reference/method/cursor.tryNext/#mongodb-method-cursor.tryNext");
+	print("Getting open change stream cursors ...");
 
 	cursors = db.getSiblingDB('admin').aggregate([
 		{ $currentOp: { allUsers: true, idleCursors: true }},
