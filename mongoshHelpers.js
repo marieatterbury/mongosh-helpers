@@ -123,6 +123,52 @@ getDuplicateDocuments = function(dbName, collName, dupeField) {
 
 
 
+getChangeStreamCursors = function(filterConditions = {}) {
+
+// Returns a list of change stream cursors that were opened or iterated recently (idle change stream cursors).
+// Based on currentOp output: https://www.mongodb.com/docs/manual/reference/method/db.currentOp/
+//
+//
+// Usage: 
+// 
+//   Create a change stream and confirm it is listening -- for example: 
+//
+//      > cursor = db.test.watch()
+//      > db.test.insertOne({testdoc: 1})
+//      > cursor.tryNext()
+//
+//   View the change stream cursor in currentOp:
+//
+//      > getChangeStreamCursors(<filterConditions>)
+//
+//         - filterConditions          : optional object containing currentOp filter, e.g. { ns: 'db_name.collection_name'}
+//
+
+
+	print("Getting currently opened change stream cursors ...");
+	print("Note: change stream cursor may not be returned if it was not opened or iterated recently \
+		consider running immediately after running a method like tryNext(). \
+		See https://www.mongodb.com/docs/manual/reference/method/cursor.tryNext/#mongodb-method-cursor.tryNext");
+
+	cursors = db.getSiblingDB('admin').aggregate([
+		{ $currentOp: { allUsers: true, idleCursors: true }},
+		{ $match: filterConditions }, 
+		{ $addFields: { 
+			pipelineFirst: { $first: "$cursor.originatingCommand.pipeline" } 
+		} },
+		{ $match: {
+			"pipelineFirst.$changeStream": {$exists: true} 
+		} }, 
+		{ $project:  {
+			pipelineFirst: 0
+		} }
+	])
+
+	return cursors
+
+}
+
+
 
 function getIndexesForDbs(excludeList) {
 
@@ -213,7 +259,9 @@ runLongDurationOp = function(dbName,collectionName, durTimeMS) {
     output = db.getSiblingDB(dbName)[collectionName].find({
         $where:'function() {'+
            'var d = new Date((new Date()).getTime() + ' + durTimeMS + ');' +
-           'while (d > (new Date())) { }; console.log(); return true;}'
+           'while (d > (new Date())) { }; ' + 
+           //'console.log(); ' + 
+           'return true;}'
     })
 
     console.log(output)
