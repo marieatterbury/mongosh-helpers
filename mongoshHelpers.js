@@ -249,7 +249,7 @@ runLongDurationOp = function(dbName,collectionName, durTimeMS) {
 //
 //     - dbName          : database name
 //     - collectionName  : collection name
-//     - durTimeMS       : duration of the operation in milliseconds (applied to each document, not the ducration of the entire long running operation)
+//     - durTimeMS       : duration of the operation in milliseconds (applied to each document, not the duration of the entire long running operation)
 
     console.log('running op on ' + dbName + '.' + collectionName + ' for ' + durTimeMS + ' ms')
 
