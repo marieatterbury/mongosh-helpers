@@ -242,14 +242,14 @@ function getTotalIndexSizesForDbs() {
 
 runLongDurationOp = function(dbName,collectionName, durTimeMS) {
 
-// Starts an operation that runs for a particular duration.
+// Starts an operation applied to each document in the collection that runs for a particular duration.
 // The operation will scan documents and use resources on the cluster.
 //
 // > runLongDurationOp(<dbName>, <collectionName>, <durTimeMS>);
 //
 //     - dbName          : database name
 //     - collectionName  : collection name
-//     - durTimeMS       : duration of the operation in milliseconds
+//     - durTimeMS       : duration of the operation in milliseconds (applied to each document, not the ducration of the entire long running operation)
 
     console.log('running op on ' + dbName + '.' + collectionName + ' for ' + durTimeMS + ' ms')
 
