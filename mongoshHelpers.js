@@ -21,10 +21,46 @@
 // > <run helper function (see below)>
 
 
+createAndShardCollection = function(numDocs) {
+
+  // Creates, seeds with sample docs, and shards a collection
+  // 
+  // Usage: 
+  //   Create a sharded cluster and connect. Then run this method to create + seed + shard: 
+  //
+  //     $ mlaunch init --sharded 2 --replicaset --nodes 1 --port <port>
+  //     $ mongosh --port <port>
+  //     ...
+  //
+  //     > load('./mongoshHelpers.js')
+  //     > createAndShardCollection(<numDocs>); 
+  //   
+  //      - numDocs          : number of sample documents in the collection (e.g. 100000)
+  
+  
+  // Create collection and populate with sample docs
+
+  for (let i = 0; i < numDocs; i++) {   
+    db.getSiblingDB("test_db").test.insertOne({"doc": i})
+  }
+
+  // set small chunk size (to make more chunks --> make chunk migration across shards more likely)
+
+  db.getSiblingDB('config').settings.insertOne( { _id:"chunksize", value: 1 } )
 
 
+  // create shard key index and shard collection 
 
-function dropAllDbs() {
+  db.getSiblingDB('test_db').test.createIndex({doc: 1})
+
+  sh.enableSharding('test_db')
+
+  sh.shardCollection('test_db.test', {doc: 1})  
+
+}
+
+
+dropAllDbs = function() {
 
 // Drop all databases (except those listed in excludeList)
 // 
@@ -167,7 +203,7 @@ getChangeStreamCursors = function(filterConditions = {}) {
 
 
 
-function getIndexesForDbs(excludeList) {
+getIndexesForDbs = function(excludeList) {
 
 // Returns indexes in all collections in databases 
 //
@@ -200,7 +236,7 @@ function getIndexesForDbs(excludeList) {
 
 
 
-function getTotalIndexSizesForDbs() {
+getTotalIndexSizesForDbs = function() {
 
 // Prints total index size per database
 //
@@ -239,6 +275,36 @@ function getTotalIndexSizesForDbs() {
 
 
 
+removeShardAfterDelay = function(delayMS, shardName) {
+
+  // Removes a shard after a delay 
+  // 
+  // Usage: 
+  //
+  //     > removeShardAfterDelay(<delayMS>); 
+  //   
+  //      - delayMS          : milliseconds to delay before removing shard (e.g. 1200000 = 15 minutes, for orphans to be cleaned up)
+  //      - shardName        : shard to be removed (e.g. shard02)
+
+    print("Removing shard after delay");
+
+    function delay(milliseconds){
+        return new Promise(resolve => {
+            setTimeout(resolve, milliseconds);
+        });
+    }
+
+    await delay(delayMS);
+
+    result = db.adminCommand({ removeShard : shardName } )    
+
+    print("Shard removal submitted");
+
+    return result
+
+}
+
+
 
 runLongDurationOp = function(dbName,collectionName, durTimeMS) {
 
@@ -251,7 +317,7 @@ runLongDurationOp = function(dbName,collectionName, durTimeMS) {
 //     - collectionName  : collection name
 //     - durTimeMS       : duration of the operation in milliseconds (applied to each document, not the duration of the entire long running operation)
 
-    console.log('running op on ' + dbName + '.' + collectionName + ' for ' + durTimeMS + ' ms')
+    console.log('running op on ' + dbName + '.' + collectionName + ' for ' + durTimeMS + ' ms per document')
 
     output = db.getSiblingDB(dbName)[collectionName].find({
         $where:'function() {'+
