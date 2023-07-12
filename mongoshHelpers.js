@@ -275,7 +275,7 @@ getTotalIndexSizesForDbs = function() {
 
 
 
-removeShardAfterDelay = function(delayMS, shardName) {
+removeShardAfterDelay = async function(delayMS, shardName) {
 
   // Removes a shard after a delay 
   // 
@@ -288,7 +288,7 @@ removeShardAfterDelay = function(delayMS, shardName) {
 
     print("Removing shard after delay");
 
-    function delay(milliseconds){
+    async function delay(milliseconds){
         return new Promise(resolve => {
             setTimeout(resolve, milliseconds);
         });
