@@ -21,7 +21,7 @@
 // > <run helper function (see below)>
 
 
-createAndShardCollection = function(numDocs) {
+createAndShardCollection = function(numDocs=1000, dbName=test_db, collName=test) {
 
   // Creates, seeds with sample docs, and shards a collection
   // 
@@ -33,29 +33,32 @@ createAndShardCollection = function(numDocs) {
   //     ...
   //
   //     > load('./mongoshHelpers.js')
-  //     > createAndShardCollection(<numDocs>); 
+  //     > createAndShardCollection(<numDocs>,<dbName>,<collName>); 
   //   
   //      - numDocs          : number of sample documents in the collection (e.g. 100000)
   
   
   // Create collection and populate with sample docs
-
+  
   for (let i = 0; i < numDocs; i++) {   
-    db.getSiblingDB("test_db").test.insertOne({"doc": i})
+    db.getSiblingDB(dbName)[collName].insertOne({"doc": i});
   }
 
   // set small chunk size (to make more chunks --> make chunk migration across shards more likely)
 
-  db.getSiblingDB('config').settings.insertOne( { _id:"chunksize", value: 1 } )
+  db.getSiblingDB('config').settings.updateOne( { _id:"chunksize" } , { $set: {value : 1 }}, { upsert: true } );
 
 
   // create shard key index and shard collection 
 
-  db.getSiblingDB('test_db').test.createIndex({doc: 1})
+  db.getSiblingDB(dbName)[collName].createIndex({doc: 1});
 
-  sh.enableSharding('test_db')
+    
+  sh.enableSharding(dbName);
 
-  sh.shardCollection('test_db.test', {doc: 1})  
+  var namespace = dbName + '.' + collName;
+
+  sh.shardCollection(namespace, {doc: 1});
 
 }
 
