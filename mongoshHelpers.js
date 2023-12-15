@@ -21,7 +21,7 @@
 // > <run helper function (see below)>
 
 
-createAndShardCollection = function(numDocs=1000, dbName=test_db, collName=test) {
+createAndShardCollection = function(numDocs=1000, dbName="test_db", collName="test") {
 
   // Creates, seeds with sample docs, and shards a collection
   // 
@@ -39,6 +39,8 @@ createAndShardCollection = function(numDocs=1000, dbName=test_db, collName=test)
   
   
   // Create collection and populate with sample docs
+
+  print("Creating a collection " + dbName + "." + collName + " with " + numDocs + " docs...")
   
   for (let i = 0; i < numDocs; i++) {   
     db.getSiblingDB(dbName)[collName].insertOne({"doc": i});
