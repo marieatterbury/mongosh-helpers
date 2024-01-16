@@ -21,6 +21,36 @@
 // > <run helper function (see below)>
 
 
+bulkInsertDocs = function(numDocs=1000, dbName="test_db", collName="test") {
+
+
+// Bulk inserts docs into a collection
+
+// Usage:
+
+// > bulkInsertDocs(<numDocs>, <dbName>, <collName>) 
+//
+//     - numDocs                : number of documents to bulk insert (e.g. 1000)
+//     - dbName                 : databse name
+//     - collName               : collection name
+
+    print("Bulk inserting " + numDocs + " docs to namespace " + dbName + "." + collName + " ... ")
+
+    values = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"];
+
+    docsToInsert = [];
+
+    for (let i = 0; i < numDocs; i++) {   
+        doc = { insertOne : { quantity: i, status: values[i % values.length] } };
+        docsToInsert[i] = doc;
+    }
+
+    db.getSiblingDB(dbName)[collName].bulkWrite(docsToInsert);
+
+    print("Done")
+    
+}
+
 createAndShardCollection = function(numDocs=1000, dbName="test_db", collName="test") {
 
   // Creates, seeds with sample docs, and shards a collection
@@ -339,10 +369,10 @@ runLongDurationOp = function(dbName,collectionName, durTimeMS) {
 
 
 
-summarizeQueries = function(dbName,collectionName) {
+summarizeQueries = function(dbName, collectionName, sortCondition={"sumDurationMillis": -1}) {
 
 // Produces a query summary for 4.4+ log entries. 
-// Groups by query shape, calculates execution stats per shape, and sorts by aggregate duration across all queries.  
+// Groups by query shape, calculates execution stats per shape, and sorts across all queries.  
 // 
 // Usage: 
 //
@@ -360,10 +390,11 @@ summarizeQueries = function(dbName,collectionName) {
 //      ...
 //
 //      > load('./mongoshHelpers.js')
-//      > summarizeQueries(<dbName>, <collectionName>);
+//      > summarizeQueries(<dbName>, <collectionName>, <sortCondition>);
 //
 //        - dbName          : database name
 //        - collectionName  : collection name
+//        - sortCondition   : sort condition object; e.g. { storage_sumBytesRead : -1 }
 //
 // Output: 
 //     - _id.plan                     : query shape (index used) 
@@ -373,6 +404,7 @@ summarizeQueries = function(dbName,collectionName) {
 //     - avgDurationMillis            : average duration (ms) per query
 //     - storage_sumTimeReadingMicros : total time (microseconds) reading from disk across all logged entries
 //     - storage_sumBytesRead         : total bytes read from disk across all logged entries
+//     - sumNReturned                 : total number of documuents returned 
 
   print('Returning query stats...')
 
@@ -392,10 +424,11 @@ summarizeQueries = function(dbName,collectionName) {
           avgDurationMillis: { $avg: "$attr.durationMillis" }, 
           storage_sumTimeReadingMicros: { $sum: "$attr.storage.data.timeReadingMicros" },
           storage_sumBytesRead: { $sum: "$attr.storage.data.bytesRead" },
+          sumNReturned: { $sum: "$attr.nreturned" },
         }
       }, 
       {
-        $sort: { sumDurationMillis: -1 } 
+        $sort: sortCondition
       }, 
     ], 
     {
