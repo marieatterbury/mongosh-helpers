@@ -21,35 +21,84 @@
 // > <run helper function (see below)>
 
 
+
+
 bulkInsertDocs = function(numDocs=1000, dbName="test_db", collName="test") {
 
 
 // Bulk inserts docs into a collection
-
+//
 // Usage:
-
+//
 // > bulkInsertDocs(<numDocs>, <dbName>, <collName>) 
 //
 //     - numDocs                : number of documents to bulk insert (e.g. 1000)
 //     - dbName                 : databse name
 //     - collName               : collection name
 
-    print("Bulk inserting " + numDocs + " docs to namespace " + dbName + "." + collName + " ... ")
+	print("Bulk inserting " + numDocs + " docs to namespace " + dbName + "." + collName + " ... ")
 
-    values = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"];
+	values = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"];
 
-    docsToInsert = [];
+	docsToInsert = [];
 
-    for (let i = 0; i < numDocs; i++) {   
-        doc = { insertOne : { quantity: i, status: values[i % values.length] } };
-        docsToInsert[i] = doc;
-    }
+	for (let i = 0; i < numDocs; i++) {   
+		doc = { insertOne : { quantity: i, status: values[i % values.length] } };
+		docsToInsert[i] = doc;
+	}
 
-    db.getSiblingDB(dbName)[collName].bulkWrite(docsToInsert);
+	db.getSiblingDB(dbName)[collName].bulkWrite(docsToInsert);
 
-    print("Done")
-    
+	print("Done")
+	
 }
+
+
+countIndexesEntriesEstimate = function(excludeList=[]) {
+
+// Returns an estimated count of index keys in all collections and databases 
+//
+// > getIndexesForDbs(excludeList)
+//
+//     - excludeList :   (Optional) Array of database names to exclude from output
+
+  print("Getting index entry counts ...");
+
+  if (excludeList.length > 0) {
+  	print("Excluding: " + excludeList);
+  }
+
+
+  totalEstimatedIndexKeysNum = 0;
+  db.getMongo().getDBNames().forEach(function (d) {
+		if (excludeList.indexOf(d) == -1) {
+		  var database = db.getSiblingDB(d);
+		  var collections = database.getCollectionNames();  
+		  collEstimatedIndexKeysNum = 0;
+		  
+		  collections.forEach(function (collectionName) {
+				var coll = database.getCollection(collectionName);
+				try {
+				  nIndexes = coll.stats().nindexes;
+				  nDocs = coll.stats().count;
+				  estimatedIndexKeysNum = nIndexes * nDocs;
+				  collEstimatedIndexKeysNum = collEstimatedIndexKeysNum + estimatedIndexKeysNum;
+				  // print(d + "." + collectionName + ": " + collEstimatedIndexKeysNum);
+				  totalEstimatedIndexKeysNum = dbEstimatedIndexKeysNum + collEstimatedIndexKeysNum;
+				} catch (err) { 
+				  print(err);
+				  print("Skipping " + collectionName);
+				}
+			});
+		};
+	});
+
+	print("Total # of index keys (estimate): " + totalEstimatedIndexKeysNum);
+
+	return totalEstimatedIndexKeysNum;
+
+}
+
 
 createAndShardCollection = function(numDocs=1000, dbName="test_db", collName="test") {
 
@@ -73,7 +122,7 @@ createAndShardCollection = function(numDocs=1000, dbName="test_db", collName="te
   print("Creating a collection " + dbName + "." + collName + " with " + numDocs + " docs...")
   
   for (let i = 0; i < numDocs; i++) {   
-    db.getSiblingDB(dbName)[collName].insertOne({"doc": i});
+	db.getSiblingDB(dbName)[collName].insertOne({"doc": i});
   }
 
   // set small chunk size (to make more chunks --> make chunk migration across shards more likely)
@@ -85,7 +134,7 @@ createAndShardCollection = function(numDocs=1000, dbName="test_db", collName="te
 
   db.getSiblingDB(dbName)[collName].createIndex({doc: 1});
 
-    
+	
   sh.enableSharding(dbName);
 
   var namespace = dbName + '.' + collName;
@@ -100,31 +149,31 @@ dropAllDbs = function() {
 // Drop all databases (except those listed in excludeList)
 // 
 // > dropallDbs();
-    
-    print("WARNING! this will drop all external databases. Enter any text below + enter to continue")
-    permission = passwordPrompt();
+	
+	print("WARNING! this will drop all external databases. Enter any text below + enter to continue")
+	permission = passwordPrompt();
 
-    if (permission != null) {
+	if (permission != null) {
 
-        print("Dropping dbs ...");
+		print("Dropping dbs ...");
 
-        // List any dbs to exclude
-        excludeList = ['config', 'admin', 'local'];
-        print("Excluding: " + excludeList);
+		// List any dbs to exclude
+		excludeList = ['config', 'admin', 'local'];
+		print("Excluding: " + excludeList);
 
-        db.getMongo().getDBNames().forEach(function (d) {
-            if (excludeList.indexOf(d) == -1) {
-                var database = db.getSiblingDB(d);
-                try {
-                    database.dropDatabase()
-                    print("Database dropped: " + d);
-                } catch (err) { 
-                    print(err);
-                    print("Skipping " + d);
-                }
-            };
-        });
-    }
+		db.getMongo().getDBNames().forEach(function (d) {
+			if (excludeList.indexOf(d) == -1) {
+				var database = db.getSiblingDB(d);
+				try {
+					database.dropDatabase()
+					print("Database dropped: " + d);
+				} catch (err) { 
+					print(err);
+					print("Skipping " + d);
+				}
+			};
+		});
+	}
 }
 
 
@@ -136,11 +185,11 @@ getAllDbAndCollNames = function() {
 //
 // > getAllDbAndCollNames();
 
-    db.getMongo().getDBNames().forEach(function (d) {
-        print("Database: " + d);
-        var cdb = db.getSiblingDB(d);
-        printjson(cdb.getCollectionNames());
-    });
+	db.getMongo().getDBNames().forEach(function (d) {
+		print("Database: " + d);
+		var cdb = db.getSiblingDB(d);
+		printjson(cdb.getCollectionNames());
+	});
 };
 
 
@@ -152,15 +201,15 @@ getCappedCollections = function() {
 // 
 // > getCappedCollections();
 
-    db.getMongo().getDBNames().forEach(function (d) {
-        print("Database: " + d);
-        var cdb = db.getSiblingDB(d);
-        var collnames = cdb.getCollectionNames();
-        cdb.getCollectionNames().forEach(function (c) {
-            var isCapped = cdb[c].stats().capped;
-            print( "- " + c + ": " + isCapped );
-        })
-    });
+	db.getMongo().getDBNames().forEach(function (d) {
+		print("Database: " + d);
+		var cdb = db.getSiblingDB(d);
+		var collnames = cdb.getCollectionNames();
+		cdb.getCollectionNames().forEach(function (c) {
+			var isCapped = cdb[c].stats().capped;
+			print( "- " + c + ": " + isCapped );
+		})
+	});
 }
 
 
@@ -174,22 +223,22 @@ getDuplicateDocuments = function(dbName, collName, dupeField) {
 //
 // > getDuplicateDocuments(dbName, collName, dupeField)
 
-	console.log("starting")
-	var resultCursor = db.getSiblingDB(dbName)[collName].aggregate([
-			{ $group: { 
-				_id: { "dupe_value": "$" + dupeField}, 
-				dups: { "$addToSet": "$_id" }, 
-				count: { "$sum": 1 } 
-			} },
-			{ $match: { count: { "$gt": 1 }} },
-			{ $limit: 5000 },
-		],
-		{
-			allowDiskUse: true
-		}
-	)
+  console.log("starting")
+  var resultCursor = db.getSiblingDB(dbName)[collName].aggregate([
+	  { $group: { 
+		_id: { "dupe_value": "$" + dupeField}, 
+		dups: { "$addToSet": "$_id" }, 
+		count: { "$sum": 1 } 
+	  } },
+	  { $match: { count: { "$gt": 1 }} },
+	  { $limit: 5000 },
+	],
+	{
+	  allowDiskUse: true
+	}
+  )
 
-	return resultCursor.toArray()
+  return resultCursor.toArray()
 }
 
 
@@ -216,23 +265,23 @@ getChangeStreamCursors = function(filterConditions = {}) {
 //
 
 
-	print("Getting open change stream cursors ...");
+  print("Getting open change stream cursors ...");
 
-	cursors = db.getSiblingDB('admin').aggregate([
-		{ $currentOp: { allUsers: true, idleCursors: true }},
-		{ $match: filterConditions }, 
-		{ $addFields: { 
-			pipelineFirst: { $first: "$cursor.originatingCommand.pipeline" } 
-		} },
-		{ $match: {
-			"pipelineFirst.$changeStream": {$exists: true} 
-		} }, 
-		{ $project:  {
-			pipelineFirst: 0
-		} }
-	])
+  cursors = db.getSiblingDB('admin').aggregate([
+	{ $currentOp: { allUsers: true, idleCursors: true }},
+	{ $match: filterConditions }, 
+	{ $addFields: { 
+	  pipelineFirst: { $first: "$cursor.originatingCommand.pipeline" } 
+	} },
+	{ $match: {
+	  "pipelineFirst.$changeStream": {$exists: true} 
+	} }, 
+	{ $project:  {
+	  pipelineFirst: 0
+	} }
+  ])
 
-	return cursors
+  return cursors
 
 }
 
@@ -246,26 +295,26 @@ getIndexesForDbs = function(excludeList) {
 //
 //     - excludeList :   Array of database names to exclude from output
 
-	print("Getting indexes for db ...");
+  print("Getting indexes for db ...");
 
-	print("Excluding: " + excludeList);
+  print("Excluding: " + excludeList);
 
-	db.getMongo().getDBNames().forEach(function (d) {
-		if (excludeList.indexOf(d) == -1) {
-			var database = db.getSiblingDB(d);
-			var collections = database.getCollectionNames();	
-			collections.forEach(function (collectionName) {
-				var coll = database.getCollection(collectionName);
-				try {
-					indexes = coll.getIndexes();
-					print("Database: " + d + " -- " + collectionName + ": " + JSON.stringify(indexes));
-				} catch (err) { 
-					print(err);
-					print("Skipping " + collectionName);
-				}
-			});
-		};
-	});
+  db.getMongo().getDBNames().forEach(function (d) {
+	if (excludeList.indexOf(d) == -1) {
+	  var database = db.getSiblingDB(d);
+	  var collections = database.getCollectionNames();  
+	  collections.forEach(function (collectionName) {
+		var coll = database.getCollection(collectionName);
+		try {
+		  indexes = coll.getIndexes();
+		  print("Database: " + d + " -- " + collectionName + ": " + JSON.stringify(indexes));
+		} catch (err) { 
+		  print(err);
+		  print("Skipping " + collectionName);
+		}
+	  });
+	};
+  });
 }
 
 
@@ -277,35 +326,35 @@ getTotalIndexSizesForDbs = function() {
 //
 // > getTotalIndexSizesForDbs();
 
-	print("Calculating index sizes and counts for databases ...");
+  print("Calculating index sizes and counts for databases ...");
 
-	excludeList = ['config', 'admin', 'local'];
-	print("Excluding: " + excludeList + " views");
+  excludeList = ['config', 'admin', 'local'];
+  print("Excluding: " + excludeList + " views");
 
-	var totalIndexSize = 0;
-	var totalIndexCount = 0;
-	db.getMongo().getDBNames().forEach(function (d) {
-		if (excludeList.indexOf(d) == -1) {
-			databaseIndexSize = 0;
-			databaseIndexCount = 0;
-			var database = db.getSiblingDB(d);
-			var collections = database.getCollectionNames();	
-			collections.forEach(function (collectionName) {
-				var coll = database.getCollection(collectionName);
-				try {
-					databaseIndexCount += coll.getIndexes().length; 
-					databaseIndexSize += coll.totalIndexSize();
-				} catch (err) { 
-					print(err) 
-					print("Skipping " + coll)
-				}
-			});
-			totalIndexSize += databaseIndexSize;
-			totalIndexCount += databaseIndexCount;
-			print("Database: " + d + " -- " + databaseIndexSize + " bytes (" + (databaseIndexSize / 1024 ) / 1024 + "MB)" + " / " + databaseIndexCount + " indexes");
-		};
-	});
-	print("Total: " + totalIndexSize + " bytes (" + (totalIndexSize / 1024 ) / 1024 + "MB)" + " / " + totalIndexCount + " indexes");
+  var totalIndexSize = 0;
+  var totalIndexCount = 0;
+  db.getMongo().getDBNames().forEach(function (d) {
+	if (excludeList.indexOf(d) == -1) {
+	  databaseIndexSize = 0;
+	  databaseIndexCount = 0;
+	  var database = db.getSiblingDB(d);
+	  var collections = database.getCollectionNames();  
+	  collections.forEach(function (collectionName) {
+		var coll = database.getCollection(collectionName);
+		try {
+		  databaseIndexCount += coll.getIndexes().length; 
+		  databaseIndexSize += coll.totalIndexSize();
+		} catch (err) { 
+		  print(err) 
+		  print("Skipping " + coll)
+		}
+	  });
+	  totalIndexSize += databaseIndexSize;
+	  totalIndexCount += databaseIndexCount;
+	  print("Database: " + d + " -- " + databaseIndexSize + " bytes (" + (databaseIndexSize / 1024 ) / 1024 + "MB)" + " / " + databaseIndexCount + " indexes");
+	};
+  });
+  print("Total: " + totalIndexSize + " bytes (" + (totalIndexSize / 1024 ) / 1024 + "MB)" + " / " + totalIndexCount + " indexes");
 }
 
 
@@ -321,21 +370,21 @@ removeShardAfterDelay = async function(delayMS, shardName) {
   //      - delayMS          : milliseconds to delay before removing shard (e.g. 1200000 = 15 minutes, for orphans to be cleaned up)
   //      - shardName        : shard to be removed (e.g. shard02)
 
-    print("Removing shard after delay");
+	print("Removing shard after delay");
 
-    async function delay(milliseconds){
-        return new Promise(resolve => {
-            setTimeout(resolve, milliseconds);
-        });
-    }
+	async function delay(milliseconds){
+		return new Promise(resolve => {
+			setTimeout(resolve, milliseconds);
+		});
+	}
 
-    await delay(delayMS);
+	await delay(delayMS);
 
-    result = db.adminCommand({ removeShard : shardName } )    
+	result = db.adminCommand({ removeShard : shardName } )    
 
-    print("Shard removal submitted");
+	print("Shard removal submitted");
 
-    return result
+	return result
 
 }
 
@@ -352,18 +401,18 @@ runLongDurationOp = function(dbName,collectionName, durTimeMS) {
 //     - collectionName  : collection name
 //     - durTimeMS       : duration of the operation in milliseconds (applied to each document, not the duration of the entire long running operation)
 
-    console.log('running op on ' + dbName + '.' + collectionName + ' for ' + durTimeMS + ' ms per document')
+	console.log('running op on ' + dbName + '.' + collectionName + ' for ' + durTimeMS + ' ms per document')
 
-    output = db.getSiblingDB(dbName)[collectionName].find({
-        $where:'function() {'+
-           'var d = new Date((new Date()).getTime() + ' + durTimeMS + ');' +
-           'while (d > (new Date())) { }; ' + 
-           //'console.log(); ' + 
-           'return true;}'
-    })
+	output = db.getSiblingDB(dbName)[collectionName].find({
+		$where:'function() {'+
+		   'var d = new Date((new Date()).getTime() + ' + durTimeMS + ');' +
+		   'while (d > (new Date())) { }; ' + 
+		   //'console.log(); ' + 
+		   'return true;}'
+	})
 
-    console.log(output)
-    
+	console.log(output)
+	
 }
 
 
@@ -409,31 +458,31 @@ summarizeQueries = function(dbName, collectionName, sortCondition={"sumDurationM
   print('Returning query stats...')
 
   var stats = db.getSiblingDB(dbName)[collectionName].aggregate(
-    [
-      {
-        $match: { "msg": "Slow query" }
-      },
-      {
-        $group: {
-          _id: {
-              plan: "$attr.planSummary",
-              ns: "$attr.ns", 
-          },
-          logCount: { $sum: 1 },
-          sumDurationMillis: { $sum: "$attr.durationMillis" },
-          avgDurationMillis: { $avg: "$attr.durationMillis" }, 
-          storage_sumTimeReadingMicros: { $sum: "$attr.storage.data.timeReadingMicros" },
-          storage_sumBytesRead: { $sum: "$attr.storage.data.bytesRead" },
-          sumNReturned: { $sum: "$attr.nreturned" },
-        }
-      }, 
-      {
-        $sort: sortCondition
-      }, 
-    ], 
-    {
-      allowDiskUse:true
-    }
+	[
+	  {
+		$match: { "msg": "Slow query" }
+	  },
+	  {
+		$group: {
+		  _id: {
+			  plan: "$attr.planSummary",
+			  ns: "$attr.ns", 
+		  },
+		  logCount: { $sum: 1 },
+		  sumDurationMillis: { $sum: "$attr.durationMillis" },
+		  avgDurationMillis: { $avg: "$attr.durationMillis" }, 
+		  storage_sumTimeReadingMicros: { $sum: "$attr.storage.data.timeReadingMicros" },
+		  storage_sumBytesRead: { $sum: "$attr.storage.data.bytesRead" },
+		  sumNReturned: { $sum: "$attr.nreturned" },
+		}
+	  }, 
+	  {
+		$sort: sortCondition
+	  }, 
+	], 
+	{
+	  allowDiskUse:true
+	}
   )
 
   return stats
