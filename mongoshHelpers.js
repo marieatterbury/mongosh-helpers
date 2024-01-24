@@ -54,11 +54,11 @@ bulkInsertDocs = function(numDocs=1000, dbName="test_db", collName="test") {
 }
 
 
-countIndexesEntriesEstimate = function(excludeList=[]) {
+countIndexesKeysEstimate = function(excludeList=[]) {
 
 // Returns an estimated count of index keys in all collections and databases 
 //
-// > getIndexesForDbs(excludeList)
+// > countIndexesKeysEstimate(excludeList)
 //
 //     - excludeList :   (Optional) Array of database names to exclude from output
 
