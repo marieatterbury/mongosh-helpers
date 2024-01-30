@@ -43,7 +43,7 @@ bulkInsertDocs = function(numDocs=1000, dbName="test_db", collName="test") {
 	docsToInsert = [];
 
 	for (let i = 0; i < numDocs; i++) {   
-		doc = { insertOne : { quantity: i, status: values[i % values.length] } };
+		doc = { insertOne : { quantity: i, status: values[i % values.length] }, objects: [i, i+1, i+2, i+3, i+4] };
 		docsToInsert[i] = doc;
 	}
 
@@ -74,7 +74,6 @@ countIndexesKeysEstimate = function(excludeList=[]) {
 		if (excludeList.indexOf(d) == -1) {
 		  var database = db.getSiblingDB(d);
 		  var collections = database.getCollectionNames();  
-		  collEstimatedIndexKeysNum = 0;
 		  
 		  collections.forEach(function (collectionName) {
 				var coll = database.getCollection(collectionName);
@@ -82,9 +81,8 @@ countIndexesKeysEstimate = function(excludeList=[]) {
 				  nIndexes = coll.stats().nindexes;
 				  nDocs = coll.stats().count;
 				  estimatedIndexKeysNum = nIndexes * nDocs;
-				  collEstimatedIndexKeysNum = collEstimatedIndexKeysNum + estimatedIndexKeysNum;
+				  totalEstimatedIndexKeysNum = totalEstimatedIndexKeysNum + estimatedIndexKeysNum;
 				  // print(d + "." + collectionName + ": " + collEstimatedIndexKeysNum);
-				  totalEstimatedIndexKeysNum = dbEstimatedIndexKeysNum + collEstimatedIndexKeysNum;
 				} catch (err) { 
 				  print(err);
 				  print("Skipping " + collectionName);
