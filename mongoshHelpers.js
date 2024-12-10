@@ -49,6 +49,8 @@ bulkInsertDocs = function(numDocs=1000, dbName="test_db", collName="test") {
 
 	db.getSiblingDB(dbName)[collName].bulkWrite(docsToInsert);
 
+
+
 	print("Done")
 	
 }
@@ -98,7 +100,7 @@ countIndexesKeysEstimate = function(excludeList=[]) {
 }
 
 
-createAndShardCollection = function(numDocs=1000, dbName="test_db", collName="test") {
+createAndShardCollection = function(numDocs=1000, dbName="test_db", collName="test", createShardZone=false) {
 
   // Creates, seeds with sample docs, and shards a collection
   // 
@@ -114,10 +116,11 @@ createAndShardCollection = function(numDocs=1000, dbName="test_db", collName="te
   //   
   //      - numDocs          : number of sample documents in the collection (e.g. 100000)
   
-  
+  var namespace = dbName + '.' + collName;
+
   // Create collection and populate with sample docs
 
-  print("Creating a collection " + dbName + "." + collName + " with " + numDocs + " docs...")
+  print("Creating a collection " + namespace + " with " + numDocs + " docs...")
   
   for (let i = 0; i < numDocs; i++) {   
 	db.getSiblingDB(dbName)[collName].insertOne({"doc": i});
@@ -135,9 +138,24 @@ createAndShardCollection = function(numDocs=1000, dbName="test_db", collName="te
 	
   sh.enableSharding(dbName);
 
-  var namespace = dbName + '.' + collName;
-
   sh.shardCollection(namespace, {doc: 1});
+
+ 	if (createShardZone == true) {
+
+	  var firstShardName = db.adminCommand({ listShards: 1 }).shards[0]._id;
+
+	  console.log("Creating a shard zone on " + firstShardName)
+
+	  sh.addShardToZone(firstShardName, "alpha")
+
+	  sh.updateZoneKeyRange(
+	      namespace,
+	      { doc : 1 },
+	      { doc : Math.ceil(numDocs/10) },
+	      "alpha"
+	  )
+	   
+	}
 
 }
 
